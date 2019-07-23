@@ -2,6 +2,8 @@ import socket
 import cv2
 import numpy as np
 import time
+import os
+from datetime import datetime
 #socket에서 수신한 버퍼를 반환하는 함수
 def recvall(sock, count):
     # 바이트 문자열
@@ -15,7 +17,7 @@ def recvall(sock, count):
  
 HOST='192.168.0.18'
 PORT=8000
-PATH = "C:/Users/"
+PATH = "C:/Users/강진국/Desktop/SB/"
 #TCP 사용
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 print('Socket created')
@@ -30,37 +32,41 @@ print('Socket now listening')
 #연결, conn에는 소켓 객체, addr은 소켓에 바인드 된 주소
 conn,addr=s.accept()
 i =0
+time = datetime.now()
+    
 while True:
     # client에서 받은 stringData의 크기 (==(str(len(stringData))).encode().ljust(16))
+    if int((datetime.now()-time).days) > 0 :
+        if os.path.exists(PATH+"/"+"trainer.yml") :
+            file = open(PATH+"trainer.yml", "rb")
+            l = file.read(65500)
+            while (l) :
+                conn.send(l)
+                l = file.read(65500)
+            file.close()
+        
     print("receving")
-    filename = conn.recv(4)
+    person_name = conn.recv(4)
+    p_name = person_name.decode()
     length = recvall(conn, 12)
-    #name = recvall(conn, 8)
     stringData = recvall(conn, int(length))
-    #name = recvall(conn, )
     data = np.fromstring(stringData, dtype = 'uint8')
     #data를 디코딩한다.
     frame = cv2.imdecode(data, cv2.IMREAD_COLOR)
-    name = filename.decode()
-    name_int = int(name)
-    print(filename)
-    print(length)
-
-    #등록된 사람이 인식된 경우
-    if(name_int // 1000 == 9) :
-        name_int -= 9000
-        #인식된 사람의 데이터 파일에 저장하는 코드
-    #등록되지 않은 사람이 인식된 경우    
-    elif (name_int // 1000 == 1) :
-        name_int -= 1000
-        #SVM 돌리는 코드
-    else :
-        print("Name Error!")
-              
-    print(name_int)
     cv2.imshow('ImageWindow',frame)
-    cv2.imwrite(PATH+str(name_int)+str(time.time())+".jpg", frame)
+
+    filename = datetime.now().strftime("SB%Y%m%d_%H%M%S")+"_"+str(i)+".jpg"
+    filedir = datetime.now().strftime("SB_"+str(p_name))
+    print(p_name)
+    print(filename)
+
+    if not os.path.isdir(PATH+filedir):
+        i = 0
+        os.mkdir(PATH+filedir)
+        
+    #cv2.imwrite(os.path.join(PATH+filedir, filename), frame)
+    cv2.imwrite(PATH+filedir+"/"+filename, frame)
+    time = datetime.now()
     cv2.waitKey(1)
     i+=1
-    
     #data를 디코딩한다.
